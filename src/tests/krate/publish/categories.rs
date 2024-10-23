@@ -1,6 +1,8 @@
 use crate::tests::builders::PublishBuilder;
 use crate::tests::new_category;
 use crate::tests::util::{RequestHelper, TestApp};
+use crates_io_database::schema::categories;
+use diesel::{insert_into, RunQueryDsl};
 use googletest::prelude::*;
 use http::StatusCode;
 use insta::{assert_json_snapshot, assert_snapshot};
@@ -8,12 +10,12 @@ use insta::{assert_json_snapshot, assert_snapshot};
 #[tokio::test(flavor = "multi_thread")]
 async fn good_categories() {
     let (app, _, _, token) = TestApp::full().with_token();
+    let mut conn = app.db_conn();
 
-    app.db(|conn| {
-        new_category("Category 1", "cat1", "Category 1 crates")
-            .create_or_update(conn)
-            .unwrap();
-    });
+    insert_into(categories::table)
+        .values(new_category("Category 1", "cat1", "Category 1 crates"))
+        .execute(&mut conn)
+        .unwrap();
 
     let crate_to_publish = PublishBuilder::new("foo_good_cat", "1.0.0").category("cat1");
     let response = token.publish_crate(crate_to_publish).await;

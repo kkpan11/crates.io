@@ -1,7 +1,6 @@
+use crates_io_test_db::TestDatabase;
 use diesel::prelude::*;
 use diesel::sql_types::Text;
-
-use crate::tests::TestApp;
 
 #[test]
 fn all_columns_called_crate_id_have_a_cascading_foreign_key() {
@@ -70,12 +69,11 @@ struct TableNameAndConstraint {
 fn get_fk_constraint_definitions(column_name: &str) -> Vec<TableNameAndConstraint> {
     use diesel::sql_query;
 
-    let (app, _) = TestApp::init().empty();
+    let test_db = TestDatabase::new();
+    let mut conn = test_db.connect();
 
-    app.db(|conn| {
-        sql_query(include_str!("load_foreign_key_constraints.sql"))
-            .bind::<Text, _>(column_name)
-            .load(conn)
-            .unwrap()
-    })
+    sql_query(include_str!("load_foreign_key_constraints.sql"))
+        .bind::<Text, _>(column_name)
+        .load(&mut conn)
+        .unwrap()
 }
